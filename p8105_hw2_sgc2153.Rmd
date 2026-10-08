@@ -32,6 +32,58 @@ dim(subway_df)
 ```
 This dataset contains information about NYC subway station entrances and exits, including the line, station name, station latitude and longitude, routes served, whether entry is allowed, vending availability, entrance type, and ADA compliance. I cleaned the column names, retained the required variables, and converted entry from "YES"/"NO" to TRUE/FALSE. The resulting dataset has `r nrow(subway_df)` rows and `r ncol(subway_df)` columns. These data are not yet fully tidy because routes served are spread across eleven columns rather than stored in a single route variable.
 
+```{r count-stations}
+subway_df |>
+  distinct(line, station_name) |>
+  nrow()
+```
+
+```{r count-ada-stations}
+subway_df |>
+  filter(ada == TRUE) |>
+  distinct(line, station_name) |>
+  nrow()
+```
+Of the 465 distinct stations, 84 are ADA compliant.
+
+```{r entry-without-vending}
+subway_df |>
+  filter(vending == "NO") |>
+  pull(entry) |>
+  mean()
+```
+37.7% of entrances/exits without vending allow entry.
+
+```{r tidy-subway-routes}
+subway_routes_df =
+  subway_df |>
+  pivot_longer(
+    cols = route1:route11,
+    names_to = "route_number",
+    names_prefix = "route",
+    values_to = "route_name",
+    values_transform = list(route_name = as.character),
+    values_drop_na = TRUE
+  ) |>
+  mutate(route_number = as.integer(route_number))
+
+head(subway_routes_df)
+```
+
+```{r count-a-train-stations}
+subway_routes_df |>
+  filter(route_name == "A") |>
+  distinct(line, station_name) |>
+  nrow()
+
+subway_routes_df |>
+  filter(route_name == "A", ada == TRUE) |>
+  distinct(line, station_name) |>
+  nrow()
+```
+After reshaping the route columns into route number and route name, I identified 60 distinct stations serving the 
+A train. Of these, 17 are ADA compliant.
+
 ## Problem 2
 
 
