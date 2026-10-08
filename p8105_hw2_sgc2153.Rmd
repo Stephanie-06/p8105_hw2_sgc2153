@@ -189,5 +189,137 @@ in June 2022.
 
 ## Problem 3
 
+```{r clean_mci_baseline}
+baseline_df =
+  read_csv(
+    "data/data_mci/MCI_baseline.csv",
+    skip = 1,
+    na = c("", "NA", ".")
+  ) |>
+  janitor::clean_names() |>
+  rename(
+    baseline_age = current_age,
+    onset_age = age_at_onset
+  ) |>
+  mutate(
+    sex = factor(sex, levels = c(0, 1), labels = c("Female", "Male")),
+    apoe4 = factor(
+      apoe4,
+      levels = c(0, 1),
+      labels = c("Non-carrier", "Carrier")
+    )
+  )
+
+nrow(baseline_df)
+
+baseline_df =
+  baseline_df |>
+  filter(is.na(onset_age) | onset_age > baseline_age)
+
+nrow(baseline_df)
+```
+
+```{r baseline_summary}
+baseline_df |>
+  summarize(
+    participants = n(),
+    developed_mci = sum(!is.na(onset_age)),
+    mean_baseline_age = mean(baseline_age, na.rm = TRUE)
+  )
+
+baseline_df |>
+  filter(sex == "Female") |>
+  summarize(
+    proportion_apoe4 = mean(apoe4 == "Carrier")
+  )
+```
+
+The baseline file contains 483 recruited participants. I skipped the
+explanatory first row, cleaned the column names, and treated "." as a
+missing value for MCI onset age. I encoded sex and APOE4 carrier status
+as factors with descriptive labels. Four participants had MCI onset at
+or before baseline and were excluded, leaving 479 eligible participants.
+The cleaned dataset has one row per participant and includes baseline
+age, sex, years of education, APOE4 status, and MCI onset age. Among the
+eligible participants, 93 developed MCI during follow-up. The average
+baseline age was 65.03 years, and 30% of women were APOE4 carriers.
+
+```{r clean_amyloid}
+amyloid_df =
+  read_csv(
+    "data/data_mci/mci_amyloid.csv",
+    skip = 1,
+    na = c("", "NA", "Na")
+  ) |>
+  janitor::clean_names() |>
+  rename(id = study_id) |>
+  pivot_longer(
+    cols = baseline:time_8,
+    names_to = "visit",
+    values_to = "amyloid_ratio"
+  ) |>
+  mutate(
+    time_years = case_match(
+      visit,
+      "baseline" ~ 0,
+      "time_2" ~ 2,
+      "time_4" ~ 4,
+      "time_6" ~ 6,
+      "time_8" ~ 8
+    )
+  ) |>
+  select(id, time_years, amyloid_ratio)
+
+dim(amyloid_df)
+```
+
+I imported the amyloid data by skipping the explanatory first row,
+cleaning the column names, and treating both "NA" and "Na" as missing
+values. I renamed the participant identifier to match the baseline
+dataset. Using pivot_longer, I reshaped the five measurement columns
+into separate variables for time since baseline and amyloid 42/40 ratio.
+The tidy dataset contains 487 participants and 2,435 participant-time
+rows, covering baseline and years 2, 4, 6, and 8. Missing biomarker
+measurements are retained as NA.
+
+```{r compare_participant_ids}
+baseline_only_df =
+  anti_join(baseline_df, amyloid_df, by = "id")
+
+amyloid_only_df =
+  amyloid_df |>
+  distinct(id) |>
+  anti_join(baseline_df, by = "id")
+
+nrow(baseline_only_df)
+nrow(amyloid_only_df)
+```
+
+After excluding participants with MCI at baseline, 8 participants in
+the baseline dataset have no matching amyloid records, and 16 participants
+in the amyloid dataset have no matching record in the eligible baseline
+dataset.
+
+```{r combine_mci_data}
+mci_combined_df =
+  inner_join(baseline_df, amyloid_df, by = "id")
+
+dim(mci_combined_df)
+
+mci_combined_df |>
+  distinct(id) |>
+  nrow()
+
+write_csv(mci_combined_df, "data/mci_combined.csv")
+```
+
+I combined the eligible baseline and amyloid datasets using an inner
+join on participant ID, retaining only participants present in both.
+The resulting dataset contains 471 participants, with five scheduled
+time points per participant, giving 2,355 rows and 8 columns. Each row
+contains a participant's baseline demographics, MCI onset age, time
+since baseline, and amyloid ratio. Missing biomarker measurements are
+retained as NA. I exported the combined dataset to data/mci_combined.csv.
+
 
 
