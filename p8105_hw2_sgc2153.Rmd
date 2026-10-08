@@ -12,6 +12,25 @@ library(tidyverse)
 
 ## Problem 1
 
+```{r import-subway}
+subway_df =
+  read_csv("data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") |>
+  janitor::clean_names() |>
+  select(
+    line, station_name, station_latitude, station_longitude,
+    route1:route11, entry, vending, entrance_type, ada
+  ) |>
+  mutate(
+    entry = case_match(
+      entry,
+      "YES" ~ TRUE,
+      "NO" ~ FALSE
+    )
+  )
+
+dim(subway_df)
+```
+This dataset contains information about NYC subway station entrances and exits, including the line, station name, station latitude and longitude, routes served, whether entry is allowed, vending availability, entrance type, and ADA compliance. I cleaned the column names, retained the required variables, and converted entry from "YES"/"NO" to TRUE/FALSE. The resulting dataset has `r nrow(subway_df)` rows and `r ncol(subway_df)` columns. These data are not yet fully tidy because routes served are spread across eleven columns rather than stored in a single route variable.
 
 ## Problem 2
 
