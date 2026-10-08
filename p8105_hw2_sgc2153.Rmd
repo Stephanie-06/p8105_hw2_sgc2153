@@ -85,7 +85,107 @@ After reshaping the route columns into route number and route name, I identified
 A train. Of these, 17 are ADA compliant.
 
 ## Problem 2
+```{r clean_mr_trash_wheel}
+mr_trash_df =
+  readxl::read_excel(
+    "data/trash_wheel.xlsx",
+    sheet = "Mr. Trash Wheel",
+    range = "A2:N743"
+  ) |>
+  janitor::clean_names() |>
+  filter(!is.na(dumpster)) |>
+  mutate(
+    year = as.integer(year),
+    month = str_trim(month),
+    sports_balls = as.integer(round(sports_balls)),
+    trash_wheel = "Mr. Trash Wheel"
+  )
 
+nrow(mr_trash_df)
+```
+
+```{r clean_professor_trash_wheel}
+professor_trash_df =
+  readxl::read_excel(
+    "data/trash_wheel.xlsx",
+    sheet = "Professor Trash Wheel",
+    range = "A2:M140",
+    na = c("", "dive")
+  ) |>
+  janitor::clean_names() |>
+  filter(!is.na(dumpster)) |>
+  mutate(
+    year = as.integer(year),
+    month = str_trim(month),
+    trash_wheel = "Professor Trash Wheel"
+  )
+
+nrow(professor_trash_df)
+```
+
+```{r clean_gwynnda}
+gwynnda_df =
+  readxl::read_excel(
+    "data/trash_wheel.xlsx",
+    sheet = "Gwynnda the Good Wheel of the W",
+    range = "A2:L395",
+    na = c("", "dive")
+  ) |>
+  janitor::clean_names() |>
+  filter(!is.na(dumpster)) |>
+  mutate(
+    year = as.integer(year),
+    month = str_trim(month),
+    trash_wheel = "Gwynnda"
+  )
+
+nrow(gwynnda_df)
+```
+
+```{r combine_trash_wheels}
+trash_wheel_df =
+  bind_rows(mr_trash_df, professor_trash_df, gwynnda_df)
+
+nrow(trash_wheel_df)
+```
+
+```{r professor_total_weight}
+professor_total_weight =
+  trash_wheel_df |>
+  filter(trash_wheel == "Professor Trash Wheel") |>
+  pull(weight_tons) |>
+  sum(na.rm = TRUE)
+
+professor_total_weight
+```
+
+```{r gwynnda_june_cigarettes}
+gwynnda_june_cigarettes =
+  trash_wheel_df |>
+  filter(
+    trash_wheel == "Gwynnda",
+    month == "June",
+    year == 2022
+  ) |>
+  pull(cigarette_butts) |>
+  sum(na.rm = TRUE)
+
+gwynnda_june_cigarettes
+```
+
+The combined dataset contains `r nrow(trash_wheel_df)` observations,
+with each row representing a dumpster collected by Mr. Trash Wheel,
+Professor Trash Wheel, or Gwynnda. Key variables include the collection
+date, trash weight in tons, volume in cubic yards, and counts of items
+such as plastic bottles and cigarette butts. I cleaned the column names,
+removed rows without dumpster numbers, standardized year and month
+values, and rounded Mr. Trash Wheel's sports ball counts to integers.
+I added a variable identifying each wheel before combining the datasets.
+Variables not recorded for a particular wheel are represented by missing
+values. Professor Trash Wheel collected a total of
+`r professor_total_weight` tons of trash, and Gwynnda collected
+`r format(gwynnda_june_cigarettes, big.mark = ",")` cigarette butts
+in June 2022.
 
 ## Problem 3
 
